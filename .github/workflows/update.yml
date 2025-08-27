@@ -4,11 +4,17 @@ on:
   schedule:
     - cron: "0 0 * * *"  # UTC 0点 = 北京时间早8点
   workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
