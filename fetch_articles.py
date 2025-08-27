@@ -4,18 +4,20 @@ import openai
 from datetime import datetime
 import os
 
-# 公众号 RSS 地址（占位，后续替换成真实地址）
+# 真实可用的RSS地址（先测试一下用国外可访问的公共源，例如 BBC 中文）
 RSS_FEEDS = [
-    "https://rsshub.app/wechat/xxx1",  # 云见 insight
-    "https://rsshub.app/wechat/xxx2",  # 辉哥奇谭
-    "https://rsshub.app/wechat/xxx3"   # 新智元
+    "http://feeds.bbci.co.uk/zhongwen/simp/rss.xml",  # BBC 中文
+    "https://36kr.com/feed"  # 36氪
 ]
 
 OUTPUT_FILE = "articles.json"
-openai.api_key = os.getenv("OPENAI_API_KEY")  # 从 GitHub Secrets 读取
+openai.api_key = os.getenv("OPENAI_API_KEY")  # 从Secrets读取
 
-# 调用 AI 生成 100 字摘要
 def generate_summary(text):
+    # 如果没配置OPENAI_API_KEY，则直接取前100字
+    if not openai.api_key:
+        return text[:100]
+
     try:
         res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -26,25 +28,27 @@ def generate_summary(text):
         )
         return res.choices[0].message.content.strip()
     except Exception as e:
-        print("AI 摘要生成失败：", e)
+        print("[AI 摘要生成失败]", e)
         return text[:100]
 
-# 抓取 RSS 数据
 def fetch_articles():
     articles = []
     for feed_url in RSS_FEEDS:
-        feed = feedparser.parse(feed_url)
-        for entry in feed.entries[:3]:  # 每个源取最近 3 篇
-            summary = generate_summary(entry.get("summary", entry.get("title", "")))
-            articles.append({
-                "source": feed.feed.title,
-                "author": entry.get("author", feed.feed.title),
-                "time": entry.get("published", datetime.now().isoformat()),
-                "summary": summary,
-                "content": entry.get("summary", ""),
-                "url": entry.link,
-                "favorite": False
-            })
+        try:
+            feed = feedparser.parse(feed_url)
+            for entry in feed.entries[:3]:
+                summary = generate_summary(entry.get("summary", entry.get("title", "")))
+                articles.append({
+                    "source": feed.feed.get("title", "未知来源"),
+                    "author": entry.get("author", feed.feed.get("title", "未知作者")),
+                    "time": entry.get("published", datetime.now().isoformat()),
+                    "summary": summary,
+                    "content": entry.get("summary", ""),
+                    "url": entry.link,
+                    "favorite": False
+                })
+        except Exception as e:
+            print(f"[抓取失败] {feed_url} - {e}")
     return articles
 
 if __name__ == "__main__":
