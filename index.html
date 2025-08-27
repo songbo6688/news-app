@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的公众号聚合</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>📚 我的订阅</header>
+<main id="news-container">加载中...</main>
+
+<script>
+fetch('articles.json')
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById('news-container');
+    container.innerHTML = '';
+
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+
+    data.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const meta = `<div class="meta">${item.source} | ${item.author} | ${item.time}</div>`;
+      const summary = `<div class="summary">${item.summary}</div>`;
+      const link = `<a href="${item.url}" target="_blank">阅读全文</a>`;
+      
+      const favBtn = document.createElement('button');
+      favBtn.textContent = favorites.includes(item.url) ? '★ 已收藏' : '☆ 收藏';
+      favBtn.onclick = () => {
+        if (favorites.includes(item.url)) {
+          favorites.splice(favorites.indexOf(item.url), 1);
+        } else {
+          favorites.push(item.url);
+        }
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        favBtn.textContent = favorites.includes(item.url) ? '★ 已收藏' : '☆ 收藏';
+      };
+
+      card.innerHTML = meta + summary + link;
+      card.appendChild(favBtn);
+      container.appendChild(card);
+    });
+  });
+</script>
+</body>
+</html>
