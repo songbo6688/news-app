@@ -1,0 +1,48 @@
+body {
+  font-family: "微软雅黑", sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+}
+header {
+  background: #3399ff;
+  color: white;
+  padding: 1rem;
+  font-size: 1.5rem;
+  text-align: center;
+}
+.card {
+  background: white;
+  margin: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.meta {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+.summary {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+button {
+  background: #3399ff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+button:hover {
+  background: #287acc;
+}
+a {
+  display: block;
+  margin-top: 0.5rem;
+  color: #3399ff;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
