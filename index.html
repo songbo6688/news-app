@@ -3,12 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>我的公众号聚合</title>
+<title>AI资讯</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header>📚 我的订阅</header>
+<header>AI资讯</header>
 <main id="news-container">加载中...</main>
+
+<!-- 弹出全文窗口 -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span id="modal-close">&times;</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
 
 <script>
 fetch('articles.json')
@@ -16,34 +24,59 @@ fetch('articles.json')
   .then(data => {
     const container = document.getElementById('news-container');
     container.innerHTML = '';
-
     const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 
-    data.forEach((item) => {
+    data.forEach(item => {
       const card = document.createElement('div');
       card.className = 'card';
 
-      const meta = `<div class="meta">${item.source} | ${item.author} | ${item.time}</div>`;
-      const summary = `<div class="summary">${item.summary}</div>`;
-      const link = `<a href="${item.url}" target="_blank">阅读全文</a>`;
-      
-      const favBtn = document.createElement('button');
-      favBtn.textContent = favorites.includes(item.url) ? '★ 已收藏' : '☆ 收藏';
-      favBtn.onclick = () => {
-        if (favorites.includes(item.url)) {
-          favorites.splice(favorites.indexOf(item.url), 1);
-        } else {
-          favorites.push(item.url);
-        }
-        localStorage.setItem('favorites', JSON.stringify(favorites));
-        favBtn.textContent = favorites.includes(item.url) ? '★ 已收藏' : '☆ 收藏';
-      };
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML = `${item.source} | ${item.author} | ${item.time}
+        <span class="fav" data-url="${item.url}">
+          ${favorites.includes(item.url) ? '★' : '☆'}
+        </span>`;
 
-      card.innerHTML = meta + summary + link;
-      card.appendChild(favBtn);
+      const summary = document.createElement('div');
+      summary.className = 'summary';
+      summary.textContent = item.summary;
+
+      const readBtn = document.createElement('button');
+      readBtn.textContent = "阅读全文";
+      readBtn.onclick = () => showModal(item.content);
+
+      card.appendChild(meta);
+      card.appendChild(summary);
+      card.appendChild(readBtn);
       container.appendChild(card);
     });
+
+    // 收藏事件
+    document.querySelectorAll('.fav').forEach(favEl => {
+      favEl.onclick = () => {
+        const url = favEl.dataset.url;
+        const idx = favorites.indexOf(url);
+        if (idx >= 0) {
+          favorites.splice(idx, 1);
+          favEl.textContent = '☆';
+        } else {
+          favorites.push(url);
+          favEl.textContent = '★';
+        }
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+      };
+    });
+
+    // 关闭全文弹窗
+    document.getElementById('modal-close').onclick = () => {
+      document.getElementById('modal').style.display = 'none';
+    };
   });
+
+function showModal(html) {
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').style.display = 'block';
+}
 </script>
 </body>
 </html>
