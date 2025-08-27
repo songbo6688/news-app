@@ -7,10 +7,10 @@ import requests
 from bs4 import BeautifulSoup
 import opencc
 
-# 初始化简繁转换器
+# 简繁转换器
 converter = opencc.OpenCC('t2s.json')
 
-# 数据源
+# 数据源列表
 RSS_FEEDS = [
     # 微博大V
     "https://rsshub.app/weibo/user/3655327240",  # 李想
@@ -18,26 +18,36 @@ RSS_FEEDS = [
     "https://rsshub.app/weibo/user/1695038020",  # Mr厉害
     "https://rsshub.app/weibo/user/7847693369",  # 理想TOP2
 
-    # 36Kr AI板块
-    "https://rsshub.app/36kr/information/AI"
+    # 国内科技/AI
+    "https://rsshub.app/36kr/information/AI",          # 36Kr AI板块
+    "https://www.jiqizhixin.com/rss",                  # 机器之心
+    "https://sspai.com/feed",                          # 少数派
+    "https://www.leiphone.com/category/ai/feed",       # 雷锋网 AI
+
+    # 国际科技/AI
+    "https://www.theverge.com/rss/index.xml",          # The Verge
+    "https://www.technologyreview.com/feed/",          # MIT Tech Review
+    "https://www.wired.com/feed/category/science/",    # Wired
+    "https://techcrunch.com/category/artificial-intelligence/feed/", # TechCrunch AI
+
+    # 综合
+    "https://rsshub.app/infoq/recommend",              # InfoQ 推荐
+    "https://cn.engadget.com/rss.xml"                  # Engadget 中文
 ]
 
 OUTPUT_FILE = "articles.json"
 
-# 从环境变量读取 AI Key
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def generate_summary(text, is_english=False):
-    """生成简体中文摘要，英文会先翻译"""
     text_simplified = converter.convert(text)
     if not openai.api_key:
         return text_simplified[:100]
     try:
         if is_english:
-            prompt = f"请将以下英文内容翻译成中文，并用不超过100字的简体中文进行总结：{text}"
+            prompt = f"请将以下英文内容翻译成中文，并用不超过100字的简体中文总结：{text}"
         else:
             prompt = f"请帮我将以下内容总结为不超过100字的简体中文摘要：{text_simplified}"
-
         res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -47,16 +57,14 @@ def generate_summary(text, is_english=False):
         )
         return res.choices[0].message.content.strip()
     except Exception as e:
-        print("[AI 摘要生成失败]", e)
+        print(f"[AI摘要失败] {e}")
         return text_simplified[:100]
 
 def fetch_full_content(url):
-    """抓取文章原文HTML并转简体"""
     try:
         resp = requests.get(url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
         resp.encoding = resp.apparent_encoding
         soup = BeautifulSoup(resp.text, "html.parser")
-
         if soup.find("article"):
             html = str(soup.find("article"))
         elif soup.find("div", class_="rich_media_content"):
@@ -68,22 +76,18 @@ def fetch_full_content(url):
         return f"<p>无法加载全文: {e}</p>"
 
 def fetch_articles():
-    """抓取所有RSS源并生成文章列表"""
     articles = []
     for feed_url in RSS_FEEDS:
         try:
             print(f"[抓取] {feed_url}")
             feed = feedparser.parse(feed_url)
-            is_english = "economist.com" in feed_url
-            for entry in feed.entries[:3]:  # 每个源取最近3篇
-                # 获取全文
+            is_english = any(domain in feed_url for domain in ["theverge.com", "technologyreview.com", "wired.com", "techcrunch.com"])
+            for entry in feed.entries[:3]:
                 if 'content' in entry and entry.content:
                     full_html = converter.convert(entry.content[0].value)
                 else:
                     full_html = fetch_full_content(entry.link)
-
                 summary = generate_summary(entry.get("summary", entry.get("title", "")), is_english)
-
                 articles.append({
                     "source": converter.convert(feed.feed.get("title", "未知来源")),
                     "author": converter.convert(entry.get("author", feed.feed.get("title", "未知作者"))),
